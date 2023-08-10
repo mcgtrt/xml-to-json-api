@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -10,11 +11,12 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/mcgtrt/xml-to-json-api/store"
 	"github.com/mcgtrt/xml-to-json-api/types"
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const (
-	DEFAULT_PAGE  = 0
+	DEFAULT_PAGE  = 1
 	DEFAULT_LIMIT = 50
 )
 
@@ -30,7 +32,9 @@ func NewArticleHandler(store store.ArticleStorer) *ArticleHandler {
 
 func (h *ArticleHandler) HandleGetArticle(w http.ResponseWriter, r *http.Request) error {
 	id := mux.Vars(r)["id"]
-	fmt.Printf("Received query id: %s\n", id)
+
+	fmt.Printf("ID: %s\n", id)
+
 	article, err := h.store.GetArticleByID(context.Background(), id)
 	if err != nil {
 		return err
@@ -39,35 +43,16 @@ func (h *ArticleHandler) HandleGetArticle(w http.ResponseWriter, r *http.Request
 }
 
 func (h *ArticleHandler) HandleGetArticles(w http.ResponseWriter, r *http.Request) error {
-	var (
-		ctx         = context.Background()
-		pageString  = r.URL.Query().Get("page")
-		limitString = r.URL.Query().Get("limit")
-		pageInt     = DEFAULT_PAGE
-		limitInt    = DEFAULT_LIMIT
-	)
-
-	if pageString != "" {
-		p, err := strconv.Atoi(pageString)
-		if err != nil {
-			return fmt.Errorf("bad request")
-		}
-		pageInt = p
+	opts, errs := makeFindOptions(r)
+	if len(errs) > 0 {
+		return WriteJSON(w, http.StatusBadRequest, errs)
 	}
 
-	if limitString != "" {
-		l, err := strconv.Atoi(limitString)
-		if err != nil {
-			return fmt.Errorf("bad request")
-		}
-		limitInt = l
-	}
-
-	articles, err := h.store.GetArticles(ctx, bson.M{
-		"$skip":  pageInt * limitInt,
-		"$limit": limitInt,
-	})
+	articles, err := h.store.GetArticles(context.Background(), opts)
 	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return ErrNoDocuments()
+		}
 		return err
 	}
 
@@ -92,4 +77,44 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(v)
+}
+
+func makeFindOptions(r *http.Request) (*options.FindOptions, map[string]string) {
+	var (
+		errors      = make(map[string]string)
+		pageString  = r.URL.Query().Get("page")
+		limitString = r.URL.Query().Get("limit")
+		pageInt     = DEFAULT_PAGE
+		limitInt    = DEFAULT_LIMIT
+
+		opts = &options.FindOptions{}
+	)
+
+	fmt.Printf("GOT PAGE: %s\nGOT LIMIT: %s\n", pageString, limitString)
+
+	if pageString != "" {
+		p, err := strconv.Atoi(pageString)
+		if err != nil {
+			errors["page"] = "invalid page parameter value"
+		} else {
+			pageInt = p
+		}
+	}
+
+	if limitString != "" {
+		l, err := strconv.Atoi(limitString)
+		if err != nil {
+			errors["limit"] = "invalid limit parameter value"
+		} else {
+			limitInt = l
+		}
+	}
+
+	if len(errors) > 0 {
+		return nil, errors
+	}
+
+	opts.SetSkip(int64((pageInt - 1) * limitInt))
+	opts.SetLimit(int64(limitInt))
+	return opts, nil
 }

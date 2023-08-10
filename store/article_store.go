@@ -7,13 +7,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Ideally we could use more interface methods for CRUD operations
 // but including only those required to complete the task.
 type ArticleStorer interface {
 	GetArticleByID(context.Context, string) (*types.Article, error)
-	GetArticles(context.Context, bson.M) ([]*types.Article, error)
+	GetArticles(context.Context, *options.FindOptions) ([]*types.Article, error)
 	InsertArticle(context.Context, *types.Article) (*types.Article, error)
 }
 
@@ -48,8 +49,8 @@ func (s *MongoArticleStore) GetArticleByID(ctx context.Context, id string) (*typ
 	return article, nil
 }
 
-func (s *MongoArticleStore) GetArticles(ctx context.Context, filter bson.M) ([]*types.Article, error) {
-	cur, err := s.coll.Find(ctx, filter)
+func (s *MongoArticleStore) GetArticles(ctx context.Context, opts *options.FindOptions) ([]*types.Article, error) {
+	cur, err := s.coll.Find(ctx, bson.M{}, opts)
 	if err != nil {
 		return nil, err
 	}
