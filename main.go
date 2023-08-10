@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/mcgtrt/xml-to-json-api/api"
+	"github.com/mcgtrt/xml-to-json-api/producer"
 	"github.com/mcgtrt/xml-to-json-api/store"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -14,8 +15,9 @@ import (
 )
 
 const (
-	dburi  = "mongodb://localhost:27017"
-	dbname = "xmlToJsonApi"
+	dburi    = "mongodb://localhost:27017"
+	dbname   = "xmlToJsonApi"
+	fetchuri = "https://www.htafc.com/api/incrowd/getnewlistinformation?count=50"
 )
 
 type apiFunc func(w http.ResponseWriter, r *http.Request) error
@@ -31,6 +33,7 @@ func main() {
 		articleHandler = api.NewArticleHandler(articleStore)
 
 		listenAddr = flag.String("listenAddr", ":3000", "api gateway http listen address")
+		producer   = producer.NewProducer(articleStore, fetchuri, 3)
 		r          = mux.NewRouter()
 	)
 	flag.Parse()
@@ -42,6 +45,10 @@ func main() {
 
 		http.Handle("/", r)
 	}
+
+	go func() {
+		producer.Start()
+	}()
 
 	logrus.Infof("Starting HTTP server at port %s", *listenAddr)
 	http.ListenAndServe(*listenAddr, nil)
