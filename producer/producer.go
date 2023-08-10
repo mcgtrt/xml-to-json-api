@@ -13,6 +13,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// I have decided not to use any external package to schedule data with
+// given time frame and built my own. Has gracefull ON / OFF functions
+// with Start() / Stop() methods
 type Producer struct {
 	store store.ArticleStorer
 

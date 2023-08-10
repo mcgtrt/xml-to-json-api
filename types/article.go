@@ -28,3 +28,9 @@ type NewListInformation struct {
 	XMLName     xml.Name    `xml:"NewListInformation"`
 	ArticleList ArticleList `xml:"NewsletterNewsItems"`
 }
+
+type MetaResponse struct {
+	Status   string `json:"status"`
+	Data     any    `json:"data"`
+	Metadata any    `jsno:"metadata"`
+}

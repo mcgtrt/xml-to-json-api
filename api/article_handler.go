@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/mcgtrt/xml-to-json-api/store"
@@ -36,7 +37,9 @@ func (h *ArticleHandler) HandleGetArticle(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return err
 	}
-	return WriteJSON(w, http.StatusOK, article)
+
+	meta := makeMetaOK(article)
+	return WriteJSON(w, http.StatusOK, meta)
 }
 
 func (h *ArticleHandler) HandleGetArticles(w http.ResponseWriter, r *http.Request) error {
@@ -53,7 +56,8 @@ func (h *ArticleHandler) HandleGetArticles(w http.ResponseWriter, r *http.Reques
 		return err
 	}
 
-	return WriteJSON(w, http.StatusOK, articles)
+	meta := makeMetaOK(articles)
+	return WriteJSON(w, http.StatusOK, meta)
 }
 
 func (h *ArticleHandler) HandlePostArticle(w http.ResponseWriter, r *http.Request) error {
@@ -112,4 +116,27 @@ func makeFindOptions(r *http.Request) (*options.FindOptions, map[string]string) 
 	opts.SetSkip(int64((pageInt - 1) * limitInt))
 	opts.SetLimit(int64(limitInt))
 	return opts, nil
+}
+
+// This method could take one more extra parameter r *http.Request
+// and based on the URL may add more key:value pairs in the Metadata
+// like pagniation values or totalItems for methods returning arrays, etc.
+func makeMetaOK(v any) types.MetaResponse {
+	count := 1
+
+	// This could be made using switch loop when having multiple response types
+	// and would be switched based on the r parameter mentioned above
+	arts, ok := v.([]*types.Article)
+	if ok {
+		count = len(arts)
+	}
+
+	return types.MetaResponse{
+		Status: "success",
+		Data:   v,
+		Metadata: map[string]any{
+			"createdAt":  time.Now(),
+			"totalItems": count,
+		},
+	}
 }
