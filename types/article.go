@@ -4,7 +4,7 @@ import "encoding/xml"
 
 type Article struct {
 	ID                string   `bson:"_id,omitempty" json:"id,omitempty"`
-	XMLName           xml.Name `xml:"NewsletterNewsItem"`
+	XMLName           xml.Name `xml:"NewsletterNewsItem" json:"-"`
 	ArticleURL        string   `xml:"ArticleURL" bson:"articleURL" json:"articleURL"`
 	NewsArticleID     int      `xml:"NewsArticleID" bson:"newsArticleID" json:"newsArticleID"`
 	PublishDate       string   `xml:"PublishDate" bson:"publishDate" json:"publishDate"`
