@@ -16,6 +16,3 @@ git clone github.com/mcgtrt/xml-to-json-api
 ```
 make run
 ```
-
-# Understanding the project architecture
-
