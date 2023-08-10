@@ -13,7 +13,11 @@ git clone github.com/mcgtrt/xml-to-json-api
 cd xml-to-json-api
 ```
 
-3. Create .env file with your configuration. Example configuration with required files below:
+3. Create .env file with your configuration in root folder:
+```
+touch .env
+```
+## Example configuration with required variables below:
 ```
 MONGO_DB_URI=mongodb://localhost:27017
 MONGO_DB_NAME=xmlToJsonApi
