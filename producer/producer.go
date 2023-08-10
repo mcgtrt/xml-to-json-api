@@ -2,9 +2,8 @@ package producer
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/xml"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -49,28 +48,38 @@ func (p *Producer) loopProduce() {
 			logrus.Errorf("Producer error: %s", err)
 		}
 
-		var info *types.NewListInformation
-		if err := json.NewDecoder(res.Body).Decode(&info); err != nil {
+		var info types.NewListInformation
+		if err := xml.NewDecoder(res.Body).Decode(&info); err != nil {
 			logrus.Errorf("Producer parsing error: %s", err)
 		}
 
 		var (
-			ctx  = context.Background()
-			list = info.ArticleList.Values
+			ctx             = context.Background()
+			list            = info.ArticleList.Values
+			newArticleCount = 0
 		)
 		for _, item := range list {
-			article, err := p.store.GetArticleByNewsArticleID(ctx, fmt.Sprintf("%d", item.NewsArticleID))
-			if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
-				logrus.Errorf("Producer store error: %s", &err)
-			} else {
-				insertedArticle, err := p.store.InsertArticle(ctx, article)
+			var (
+				_, err    = p.store.GetArticleByNewsArticleID(ctx, item.NewsArticleID)
+				noDocCond = errors.Is(err, mongo.ErrNoDocuments)
+			)
+
+			if err != nil && !noDocCond {
+				logrus.Errorf("Producer store error: %s", err)
+			} else if err != nil && noDocCond {
+				_, err := p.store.InsertArticle(ctx, &item)
 				if err != nil {
 					logrus.Errorf("Producer store insert error: %s", err)
 				} else {
-					logrus.Infof("Successfully inserted new article with ID: %s", insertedArticle.ID)
+					newArticleCount++
 				}
 			}
 		}
+
+		logrus.WithFields(logrus.Fields{
+			"from":             p.pollURL,
+			"newArticlesCount": newArticleCount,
+		}).Info("Producer data poll")
 
 		// This should be set to time.Minute on production but for demonstration purposes
 		// is set to seconds to prove it's working

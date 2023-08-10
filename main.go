@@ -33,7 +33,7 @@ func main() {
 		articleHandler = api.NewArticleHandler(articleStore)
 
 		listenAddr = flag.String("listenAddr", ":3000", "api gateway http listen address")
-		producer   = producer.NewProducer(articleStore, fetchuri, 3)
+		producer   = producer.NewProducer(articleStore, fetchuri, 5)
 		r          = mux.NewRouter()
 	)
 	flag.Parse()

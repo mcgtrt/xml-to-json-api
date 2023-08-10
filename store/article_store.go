@@ -14,6 +14,7 @@ import (
 // but including only those required to complete the task.
 type ArticleStorer interface {
 	GetArticleByID(context.Context, string) (*types.Article, error)
+	GetArticleByNewsArticleID(context.Context, int) (*types.Article, error)
 	GetArticles(context.Context, *options.FindOptions) ([]*types.Article, error)
 	InsertArticle(context.Context, *types.Article) (*types.Article, error)
 }
@@ -39,6 +40,19 @@ func (s *MongoArticleStore) GetArticleByID(ctx context.Context, id string) (*typ
 	var (
 		filter  = bson.M{"_id": oid}
 		res     = s.coll.FindOne(ctx, filter)
+		article *types.Article
+	)
+
+	if err := res.Decode(&article); err != nil {
+		return nil, err
+	}
+
+	return article, nil
+}
+
+func (s *MongoArticleStore) GetArticleByNewsArticleID(ctx context.Context, id int) (*types.Article, error) {
+	var (
+		res     = s.coll.FindOne(ctx, bson.M{"newsArticleID": id})
 		article *types.Article
 	)
 
