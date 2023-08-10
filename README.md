@@ -14,5 +14,6 @@ git clone github.com/mcgtrt/xml-to-json-api
 
 2. Run project
 ```
+cd xml-to-json-api
 make run
 ```
