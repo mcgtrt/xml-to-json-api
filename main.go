@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/mcgtrt/xml-to-json-api/api"
 	"github.com/mcgtrt/xml-to-json-api/store"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -42,6 +43,7 @@ func main() {
 		http.Handle("/", r)
 	}
 
+	logrus.Infof("Starting HTTP server at port %s", *listenAddr)
 	http.ListenAndServe(*listenAddr, nil)
 }
 

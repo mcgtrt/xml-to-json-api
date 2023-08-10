@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -32,8 +31,6 @@ func NewArticleHandler(store store.ArticleStorer) *ArticleHandler {
 
 func (h *ArticleHandler) HandleGetArticle(w http.ResponseWriter, r *http.Request) error {
 	id := mux.Vars(r)["id"]
-
-	fmt.Printf("ID: %s\n", id)
 
 	article, err := h.store.GetArticleByID(context.Background(), id)
 	if err != nil {
@@ -89,8 +86,6 @@ func makeFindOptions(r *http.Request) (*options.FindOptions, map[string]string) 
 
 		opts = &options.FindOptions{}
 	)
-
-	fmt.Printf("GOT PAGE: %s\nGOT LIMIT: %s\n", pageString, limitString)
 
 	if pageString != "" {
 		p, err := strconv.Atoi(pageString)
