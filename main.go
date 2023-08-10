@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"flag"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
+	_ "github.com/joho/godotenv/autoload"
 	"github.com/mcgtrt/xml-to-json-api/api"
 	"github.com/mcgtrt/xml-to-json-api/producer"
 	"github.com/mcgtrt/xml-to-json-api/store"
@@ -14,10 +15,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-const (
-	dburi    = "mongodb://localhost:27017"
-	dbname   = "xmlToJsonApi"
-	fetchuri = "https://www.htafc.com/api/incrowd/getnewlistinformation?count=50"
+var (
+	dburi          string
+	dbname         string
+	httpListenAddr string
+	fetchuri       = "https://www.htafc.com/api/incrowd/getnewlistinformation?count=50"
 )
 
 type apiFunc func(w http.ResponseWriter, r *http.Request) error
@@ -32,11 +34,9 @@ func main() {
 		articleStore   = store.NewMongoArticleStore(client, dbname)
 		articleHandler = api.NewArticleHandler(articleStore)
 
-		listenAddr = flag.String("listenAddr", ":3000", "api gateway http listen address")
-		producer   = producer.NewProducer(articleStore, fetchuri, 5)
-		r          = mux.NewRouter()
+		producer = producer.NewProducer(articleStore, fetchuri, 5)
+		r        = mux.NewRouter()
 	)
-	flag.Parse()
 
 	{
 		r.HandleFunc("/article/{id}", makeHandlerFunc(articleHandler.HandleGetArticle)).Methods("GET")
@@ -50,8 +50,8 @@ func main() {
 		producer.Start()
 	}()
 
-	logrus.Infof("Starting HTTP server at port %s", *listenAddr)
-	http.ListenAndServe(*listenAddr, nil)
+	logrus.Infof("Starting HTTP server at port %s", httpListenAddr)
+	http.ListenAndServe(httpListenAddr, nil)
 }
 
 func makeHandlerFunc(fn apiFunc) http.HandlerFunc {
@@ -66,4 +66,10 @@ func makeHandlerFunc(fn apiFunc) http.HandlerFunc {
 			api.WriteJSON(w, apiErr.Status, apiErr)
 		}
 	}
+}
+
+func init() {
+	dburi = os.Getenv("MONGO_DB_URI")
+	dbname = os.Getenv("MONGO_DB_NAME")
+	httpListenAddr = os.Getenv("HTTP_LISTEN_ADDR")
 }
