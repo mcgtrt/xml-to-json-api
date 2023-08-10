@@ -57,7 +57,13 @@ func main() {
 func makeHandlerFunc(fn apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := fn(w, r); err != nil {
-			api.WriteJSON(w, http.StatusBadRequest, map[string]string{"er: ": err.Error()})
+			apiErr, ok := err.(api.Error)
+			if ok {
+				api.WriteJSON(w, apiErr.Status, apiErr)
+				return
+			}
+			apiErr = api.ErrInternalServerError()
+			api.WriteJSON(w, apiErr.Status, apiErr)
 		}
 	}
 }
